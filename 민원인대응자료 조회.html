@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script lang="javascript" src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --dark : #191f28;
+      --grey:#393E46;
+      --teal:#00ADB5;
+      --white : #EEEEEE;
+    }
+    
+    .backL {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 503;
+    }
+
+    .loader {
+      width: 50px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 8px solid;
+      border-color: #000 #0000;
+      animation: l1 1s infinite;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+    }
+
+    @keyframes l1 {
+      to {
+        transform: rotate(.5turn)
+      }
+    }
+
+    button {
+      width: 88px;
+      padding: 11px 16px;
+      position: relative;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 18px;
+      color: #f9fafb;
+      white-space: nowrap;
+      text-align: center;
+      vertical-align: middle;
+      cursor: pointer;
+      background-color: #3182f6;
+      background-image: none;
+      border: 0 solid transparent;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      text-decoration: none;
+      border-radius: 7px;
+    }
+
+    button:hover{
+      color: #fff;
+      background-color: #1b64da;
+    }
+
+
+    input[type=text] {
+      border: 1px solid #ccc;
+      margin-right: 1rem;
+      padding: 2px 5px;
+      width:16rem;
+      background: #fff;
+      border-radius: 8px;
+      height: 2rem;
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 18px;
+    }
+
+    input[type=text]::placeholder{
+      color:#ccc;
+    }
+
+    table {
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-top: 1rem;
+      width: 100%;
+    }
+
+    th,
+    td {
+      padding: 6px 15px;
+    }
+
+    th {
+      /* background: #42444e; */
+      background: var(--dark);
+      color: #fff;
+      text-align: left;
+    }
+
+    tr:first-child th:first-child {
+      border-top-left-radius: 6px;
+    }
+
+    tr:first-child th:last-child {
+      border-top-right-radius: 6px;
+    }
+
+    td {
+      border-right: 1px solid #c6c9cc;
+      border-bottom: 1px solid #c6c9cc;
+    }
+
+    td:first-child {
+      border-left: 1px solid #c6c9cc;
+    }
+
+    tr:nth-child(even) td {
+      background: #eaeaed;
+    }
+
+    tr:last-child td:first-child {
+      border-bottom-left-radius: 6px;
+    }
+
+    tr:last-child td:last-child {
+      border-bottom-right-radius: 6px;
+    }
+
+    .search-box {
+      align-items: center;
+      margin:1rem;
+      padding:1rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    .upload-conatiner {
+      border-left: 2px dashed #ccc;
+      border-right: 2px dashed #ccc;
+      border-bottom: 2px dashed #ccc;
+      border-bottom-left-radius: 6px;
+      border-bottom-right-radius: 6px;
+      text-align: center;
+      color: #ccc;
+      padding:5rem;
+    }
+
+    .upload-inner{
+      height:100px;
+      width:100%;
+      cursor: pointer;
+      display: block;
+      font-weight: 600;
+      line-height: 18px;
+      color: #ccc;
+      padding: auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="backL" style="display:none;" id="loadingBar">
+    <div class="loader"></div>
+  </div>
+
+  <div class="search-box">
+    <input type="text" id="name" placeholder="이름" onKeyup="enterKey()" />
+    <input type="text" id="unit" placeholder="통합접수번호" onKeyup="enterKey()" />
+    <input type="text" id="customer" placeholder="대행기관" onKeyup="enterKey()" />
+    <button id="searchBtn" onclick="search()" class="button">검색</button>
+  </div>
+
+  <div class="main">
+    <table>
+      <thead>
+        <tr>
+          <th>접수대행기관</th>
+          <th>배송구분(기관/개별)</th>
+          <th>민원인명</th>
+          <th>송장번호</th>
+          <th>접수번호</th>
+          <th>접수 일자</th>
+          <th>수신 일자</th>
+          <th>발급계획여부</th>
+          <th>발급 장소</th>
+          <th>배송일</th>
+          <th>발급 대기 순번</th>
+          <th>배송 예상일</th>
+        </tr>
+      </thead>
+      <tbody id="excelData">
+        <!-- <tr><td colspan="12" style="text-align:center;">검색 결과가 없습니다.</td></tr> -->
+      </tbody>
+    </table>
+    <div class="upload-conatiner" id="uploadContainer">
+      <label class="upload-label" id="label" for="excelFile">
+         <div class="upload-inner" id="inner">
+          <svg width="81px" height="81px" viewBox="0 0 24.00 24.00" xmlns="http://www.w3.org/2000/svg" fill="#ccc" stroke="#ccc" stroke-width="0.00024000000000000003"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="#CCCCCC" stroke-width="0.096"></g><g id="SVGRepo_iconCarrier"> <g> <path fill="none" d="M0 0h24v24H0z"></path> <path fill-rule="nonzero" d="M16 13l6.964 4.062-2.973.85 2.125 3.681-1.732 1-2.125-3.68-2.223 2.15L16 13zm-2-7h2v2h5a1 1 0 0 1 1 1v4h-2v-3H10v10h4v2H9a1 1 0 0 1-1-1v-5H6v-2h2V9a1 1 0 0 1 1-1h5V6zM4 14v2H2v-2h2zm0-4v2H2v-2h2zm0-4v2H2V6h2zm0-4v2H2V2h2zm4 0v2H6V2h2zm4 0v2h-2V2h2zm4 0v2h-2V2h2z"></path> </g> </g></svg>
+          <div>드래그 앤 드롭 또는 <a style="color:#3182f6">클릭</a>하여 업로드해 주세요.</div>
+        </div>
+      </label>
+      <input id="excelFile" type="file" hidden="true">
+    </div>
+  </div>
+
+
+
+ 
+ <script>
+    var input = document.getElementById("excelFile");
+    var initLabel = document.getElementById("label");
+ 
+    input.addEventListener("change", (event) => {
+       const files = changeEvent(event);
+       handleUpdate(files[0]);
+    });
+ 
+    initLabel.addEventListener("mouseover", (event) => {
+       event.preventDefault();
+    });
+ 
+    initLabel.addEventListener("mouseout", (event) => {
+       event.preventDefault();
+    });
+ 
+    document.addEventListener("dragenter", (event) => {
+       event.preventDefault();
+    });
+ 
+    document.addEventListener("dragover", (event) => {
+       event.preventDefault();
+    });
+ 
+    document.addEventListener("dragleave", (event) => {
+       event.preventDefault();
+    });
+ 
+    document.addEventListener("drop", (event) => {
+       event.preventDefault();
+       if (event.target.className === "upload-conatiner") {
+        const files = event.dataTransfer?.files;
+          handleUpdate(files[0]);
+       }
+    });
+ 
+    function changeEvent(event) {
+       const { target } = event;
+       return [...target.files];
+    };
+ 
+    function handleUpdate(file) {
+      const reader = new FileReader();
+      reader.onloadstart = () => {
+        document.getElementById("loadingBar").style.display = "block";
+      };
+      reader.onloadend = () => {
+        document.getElementById("loadingBar").style.display = "none";
+        document.getElementById("uploadContainer").style.display = "none";
+        document.getElementById("excelData").innerHTML = '<tr><td colspan="12" style="text-align:center;">이름, 통합접수번호, 대행기관명으로 검색이 가능합니다.</td></tr>';
+      };
+      reader.onload = function () {
+        let fileData = reader.result;
+        let wb = XLSX.read(fileData, { type: 'array' });
+        wbSheetName = wb.SheetNames[0];
+        wb.SheetNames.forEach(function (sheetName) {
+          let objArray = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: '' });
+          excelData = objArray;
+        });
+      }
+      reader.readAsArrayBuffer(file);
+    };
+ 
+ </script>
+
+  <script>
+    function enterKey() {
+      if (window.event.keyCode == 13) { search(); }
+    }
+    const template = `<tr>
+                    <td>{접수대행기관}</td>
+                    <td>{배송구분(기관/개별)}</td>
+                    <td>{민원인명}</td>
+                    <td>{송장번호}</td>
+                    <td>{접수번호}</td>
+                    <td>{접수 일자}</td>
+                    <td>{수신 일자}</td>
+                    <td>{발급계획여부}</td>
+                    <td>{발급 장소}</td>
+                    <td>{배송일}</td>
+                    <td>{발급 대기 순번}</td>
+                    <td>{배송 예상일}</td>
+                </tr>`;
+    let excelData = null;
+    function search() {
+      if (!excelData) { alert('파일을 업로드해주세요'); return false; };
+
+      const name = document.getElementById("name").value;
+      const unit = document.getElementById("unit").value;
+      const customer = document.getElementById("customer").value;
+      if (!name && !unit && !customer) { alert('검색조건을 입력해주세요'); document.getElementById("name").focus(); return false; }
+      const searchData = excelData.filter(v => {
+        if (!name) return true;
+        return v['민원인명'].indexOf(name) != -1;
+      }).filter(v => {
+        if (!unit) return true;
+        return v['접수번호(13자리)'].indexOf(unit) != -1;
+      }).filter(v => {
+        if (!customer) return true;
+        return v['접수대행기관'].indexOf(customer) != -1;
+      });
+      let str = '';
+      searchData.forEach(v => {
+        str += template.replace('{접수대행기관}', v['접수대행기관'])
+          .replace('{배송구분(기관/개별)}', v['배송구분(기관 / 개별)'])
+          .replace('{민원인명}', v['민원인명'])
+          .replace('{송장번호}', v['송장번호(13자리)'])
+          .replace('{접수번호}', v['접수번호(13자리)'])
+          .replace('{접수 일자}', v['접수일자'])
+          .replace('{수신 일자}', v['수신일자'])
+          .replace('{발급계획여부}', v['발급계획여부'])
+          .replace('{발급 장소}', v['발급장소'])
+          .replace('{배송일}', v['출하일'])
+          .replace('{발급 대기 순번}', v['발급대기순번'])
+          .replace('{배송 예상일}', v['배송예상일'])
+
+      });
+      if (str == '') str = '<tr><td colspan="12" style="text-align:center;">검색 결과가 없습니다.</td></tr>';
+      document.getElementById("excelData").innerHTML = str;
+
+    }
+  </script>
+</body>
+
+</html>
